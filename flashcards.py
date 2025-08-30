@@ -1,22 +1,35 @@
 import streamlit as st
-from transformers import pipeline
+import spacy
 
-# Load NLP model
-qg = pipeline("question-generation")
+# Load spaCy NLP model
+nlp = spacy.load("en_core_web_sm")
 
-st.title("AI Flashcard Generator")
-st.write("Paste your text below and get flashcards!")
+st.title("Flashcard Generator")
 
-# Input text
-text = st.text_area("Enter your study material here:")
+st.write("Enter a passage of text, and this app will create flashcards for you!")
+
+# Text input box
+text = st.text_area("Enter your text here:")
 
 if st.button("Generate Flashcards"):
-    if text.strip():
-        flashcards = qg(text)
-        st.subheader("Your Flashcards:")
-        for i, card in enumerate(flashcards, 1):
-            with st.expander(f"Flashcard {i} (Click to see Answer)"):
-                st.write("**Q:**", card['question'])
-                st.write("**A:**", card['answer'])
+    if text.strip() == "":
+        st.warning("Please enter some text first.")
     else:
-        st.warning("Please enter some text!")
+        doc = nlp(text)
+        flashcards = []
+
+        # Use named entities as answers
+        for ent in doc.ents:
+            question = f"What is {ent.label_} related to '{ent.text}'?"
+            answer = ent.text
+            flashcards.append((question, answer))
+
+        if len(flashcards) == 0:
+            st.info("No entities found to make flashcards. Try longer or different text.")
+        else:
+            st.success("Here are your flashcards:")
+            for q, a in flashcards:
+                st.write(f"**Q:** {q}")
+                st.write(f"**A:** {a}")
+                st.write("---")
+
